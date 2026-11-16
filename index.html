@@ -58,6 +58,7 @@ legend{font-weight:600;margin-bottom:6px;padding:0}
    <li>Ihre Angaben im Kurzfragebogen nach dem Start (Lehrerfahrung, Nutzung von KI-Werkzeugen, Schulform, Vorerfahrung mit „Mathe sicher können“),</li>
    <li>Texte, die Sie in Eingabefelder des Prototyps schreiben,</li>
    <li>Ihre <b>Fragen an den KI-Assistenten und dessen Antworten</b>,</li>
+   <li>Ihre Antworten im abschließenden Rückmeldebogen, falls Sie ihn ausfüllen,</li>
    <li>technische Angaben: Browser-Kennung und Fenstergröße.</li>
   </ul>
   <p>In unserer Studiendatenbank speichern wir keine IP-Adressen. Die Seite wird über GitHub Pages (GitHub Inc., USA) bereitgestellt. GitHub erfasst beim Aufruf technisch bedingt Ihre IP-Adresse in Server-Protokollen. Auch der Datenbankdienst Supabase kann technische Verbindungsdaten protokollieren.</p></details>
@@ -124,7 +125,7 @@ legend{font-weight:600;margin-bottom:6px;padding:0}
 (function(){
 const FUNKTION_URL='https://ftrzhdqoibsnuqtvyfvl.supabase.co/functions/v1/msk-plus';
 const ZIEL='prototyp.html';
-const EINWILLIGUNG_VERSION='2026-11-v2';
+const EINWILLIGUNG_VERSION='2026-11-v3';
 const $=id=>document.getElementById(id);
 $('ver').textContent=EINWILLIGUNG_VERSION;
 const p=new URLSearchParams(location.search);if(p.get('code'))$('code').value=p.get('code');
@@ -137,7 +138,7 @@ $('go').addEventListener('click',async()=>{
   const r=await fetch(FUNKTION_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify({aktion:'start',code:$('code').value,einwilligung_version:EINWILLIGUNG_VERSION,einwilligung_zeit:new Date().toISOString(),browser:navigator.userAgent,bildschirm:screen.width+'x'+screen.height+' / Fenster '+innerWidth+'x'+innerHeight})});
   const j=await r.json().catch(()=>({}));
   if(!r.ok||!j.sitzung)throw new Error(j.fehler||'Start nicht möglich ('+r.status+').');
-  ['msk_chat','msk_seq','msk_kc'].forEach(k=>sessionStorage.removeItem(k));
+  ['msk_chat','msk_seq','msk_kc','msk_kcw','msk_rm','msk_hinweis'].forEach(k=>sessionStorage.removeItem(k));
   sessionStorage.setItem('msk_sitzung',JSON.stringify({code:j.code,sitzung:j.sitzung,start:new Date().toISOString()}));
   zeigeFragebogen(j);
  }catch(e){$('err').textContent=e instanceof TypeError?'Keine Verbindung zum Server. Bitte später erneut versuchen.':e.message;$('go').textContent='Prototyp starten';upd()}
