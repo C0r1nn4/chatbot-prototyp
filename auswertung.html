@@ -64,16 +64,16 @@ function liste(){
  const nFragen=DATA.chat.filter(c=>c.rolle==='user').length;
  let h=`<div class="kp"><div><b>${new Set(S.map(s=>s.code)).size}</b>Codes mit Sitzung</div><div><b>${S.length}</b>Sitzungen</div><div><b>${DATA.ereignisse.length}</b>Ereignisse</div><div><b>${nFragen}</b>Fragen an die KI</div></div>
  <div class="bar"><button class="gh" id="xj">Alles als JSON</button><button class="gh" id="xe">Ereignisse CSV</button><button class="gh" id="xc">Chat CSV</button><button class="gh" id="xs">Sitzungen CSV</button><label><input type="checkbox" id="ohneTest" checked> TEST-Codes ausblenden</label></div>
- <table><tr><th>Code</th><th>Start</th><th>Dauer</th><th>Klicks</th><th>Fragen</th><th>Erfahrung</th><th>KI</th></tr>`;
+ <table><tr><th>Code</th><th>Start</th><th>Dauer</th><th>Klicks</th><th>Fragen</th><th>Erfahrung</th><th>KI</th><th>Rückm.</th></tr>`;
  const ohne=!document.getElementById('ohneTest')||document.getElementById('ohneTest').checked;
  S.filter(s=>!(ohne&&/^TEST/.test(s.code))).forEach(s=>{const p=proSitzung(s.id),last=[...p.ev.map(e=>e.zeit),...p.ch.map(c=>c.zeit),s.start].sort().pop();
-  h+=`<tr class="s${AKT===s.id?' on':''}" data-id="${s.id}"><td><b>${esc(s.code)}</b></td><td>${dt(s.start)}</td><td>${dauer(new Date(last)-new Date(s.start))}</td><td>${p.ev.filter(e=>e.typ==='klick').length}</td><td>${p.ch.filter(c=>c.rolle==='user').length}</td><td>${esc((s.hintergrund||{}).lehrerfahrung||'–')}</td><td>${esc((s.hintergrund||{}).ki_nutzung||'–')}</td></tr>`});
+  h+=`<tr class="s${AKT===s.id?' on':''}" data-id="${s.id}"><td><b>${esc(s.code)}</b></td><td>${dt(s.start)}</td><td>${dauer(new Date(last)-new Date(s.start))}</td><td>${p.ev.filter(e=>e.typ==='klick').length}</td><td>${p.ch.filter(c=>c.rolle==='user').length}</td><td>${esc((s.hintergrund||{}).lehrerfahrung||'–')}</td><td>${esc((s.hintergrund||{}).ki_nutzung||'–')}</td><td>${s.rueckmeldung?'✓':''}</td></tr>`});
  $('liste').innerHTML=h+'</table>';
  $('liste').querySelectorAll('tr.s').forEach(tr=>tr.addEventListener('click',()=>{AKT=tr.dataset.id;liste();detail()}));
  $('ohneTest').checked=ohne;$('ohneTest').addEventListener('change',liste);
  $('xj').onclick=()=>dl('msk_auswertung.json',JSON.stringify(DATA,null,1),'application/json');
  $('xe').onclick=()=>dl('msk_ereignisse.csv',csv(DATA.ereignisse,['code','sitzung_id','seq','zeit','typ','ziel','text','details','ansicht']),'text/csv');
- $('xs').onclick=()=>dl('msk_sitzungen.csv',csv(DATA.sitzungen.map(s=>Object.assign({},s,s.hintergrund||{})),['code','id','start','letzte_aktivitaet','einwilligung_version','bildschirm','browser','lehrerfahrung','ki_nutzung','schulform','msk_erfahrung']),'text/csv');
+ $('xs').onclick=()=>dl('msk_sitzungen.csv',csv(DATA.sitzungen.map(s=>Object.assign({},s,s.hintergrund||{},s.rueckmeldung||{})),['code','id','start','letzte_aktivitaet','einwilligung_version','bildschirm','browser','lehrerfahrung','ki_nutzung','schulform','msk_erfahrung','d_verstaendlich','d_foerderplanung','k_hilfreich','k_zutreffend','k_ueberpruefen','k_nutzen','o_hilfreich','o_gefehlt','o_ki_frage']),'text/csv');
  $('xc').onclick=()=>dl('msk_chat.csv',csv(DATA.chat,['code','sitzung_id','zeit','rolle','inhalt','ansicht','modell','dauer_ms','meta']),'text/csv');
 }
 function ans(a){if(!a)return '';return [a.klasse&&'Klasse '+a.klasse,a.ansicht,a.stand,a.aufgabe&&'Aufgabe '+a.aufgabe,a.lernende&&'Kind '+a.lernende,a.foerdereinheit&&'FE '+a.foerdereinheit].filter(Boolean).join(' · ')}
@@ -84,9 +84,12 @@ function detail(){
   ...p.ch.map(c=>({z:c.zeit,k:c.rolle==='user'?'Frage':c.rolle==='assistant'?'KI-Antwort':'KI-Fehler',cls:c.rolle,c:esc(c.inhalt||''),a:c.rolle==='user'?ans(c.ansicht):(c.dauer_ms?'Antwortzeit '+(c.dauer_ms/1000).toFixed(1)+' s':'')}))].sort((a,b)=>a.z.localeCompare(b.z));
  $('detail').style.display='';
  $('detail').innerHTML=`<div class="bar"><b style="font-size:16px">${esc(s.code)}</b><span class="mut small">${dt(s.start)} · ${esc(s.bildschirm||'')} · Einwilligung ${esc(s.einwilligung_version||'')}${s.hintergrund?' · Lehrerfahrung: '+esc(s.hintergrund.lehrerfahrung||'–')+' · KI-Nutzung: '+esc(s.hintergrund.ki_nutzung||'–')+' · Schulform: '+esc(s.hintergrund.schulform||'–')+' · MSK: '+esc(s.hintergrund.msk_erfahrung||'–'):''}</span><span style="flex:1"></span><label><input type="checkbox" id="nurChat"${nurChat?' checked':''}> nur Chat</label><label><input type="checkbox" id="mitAnsicht"${ohneAns?'':' checked'}> Ansichtswechsel zeigen</label></div>
+ ${rmBox(s.rueckmeldung)}
  <ul class="tl">${items.map(i=>`<li class="${i.cls}"><span class="t">${zt(i.z)}</span><span class="k ${esc(i.k)}">${esc(i.k)}</span><div><div class="c">${i.c}</div>${i.a?`<div class="a">${esc(i.a)}</div>`:''}</div></li>`).join('')}</ul>`;
  $('nurChat').onchange=detail;$('mitAnsicht').onchange=detail;
 }
+function rmBox(r){if(!r)return '';const L={d_verstaendlich:'Darstellung verständlich',d_foerderplanung:'Förderung planbar',k_hilfreich:'KI hilfreich',k_zutreffend:'KI zutreffend',k_ueberpruefen:'hätte überprüft',k_nutzen:'würde nutzen'},O={o_hilfreich:'Hilfreich',o_gefehlt:'Gefehlt/gestört',o_ki_frage:'Nicht gut beantwortet'};
+ return '<div style="background:#f7f4fc;border-radius:6px;padding:10px 12px;margin-bottom:10px;font-size:13px"><b>Rückmeldung</b> <span class="mut small">(1 = trifft gar nicht zu … 5 = trifft voll zu)</span><br>'+Object.keys(L).map(k=>L[k]+': <b>'+esc(r[k]==null?'–':r[k])+'</b>').join(' · ')+Object.keys(O).filter(k=>r[k]).map(k=>'<div style="margin-top:6px"><i>'+O[k]+':</i> '+esc(r[k])+'</div>').join('')+'</div>'}
 function csv(rows,cols){const f=v=>{if(v==null)return '';if(typeof v==='object')v=JSON.stringify(v);v=String(v);return /[";\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};return '﻿'+cols.join(';')+'\n'+rows.map(r=>cols.map(c=>f(r[c])).join(';')).join('\n')}
 function dl(n,t,typ){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:typ+';charset=utf-8'}));a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
 })();
