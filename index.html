@@ -97,7 +97,7 @@ $('go').addEventListener('click',async()=>{
   ['msk_chat','msk_seq','msk_kc'].forEach(k=>sessionStorage.removeItem(k));
   sessionStorage.setItem('msk_sitzung',JSON.stringify({code:j.code,sitzung:j.sitzung,start:new Date().toISOString()}));
   location.href=ZIEL;
- }catch(e){$('err').textContent=e.message==='Failed to fetch'?'Keine Verbindung zum Server. Bitte später erneut versuchen.':e.message;$('go').textContent='Prototyp starten';upd()}
+ }catch(e){$('err').textContent=e instanceof TypeError?'Keine Verbindung zum Server. Bitte später erneut versuchen.':e.message;$('go').textContent='Prototyp starten';upd()}
 });
 })();
 </script>
