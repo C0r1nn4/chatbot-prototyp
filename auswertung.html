@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>MSK-Plus Prototyp · Auswertung</title>
+<style>
+:root{--pur:#673ab7;--pur-d:#4527a0}
+*{box-sizing:border-box}
+body{margin:0;font-family:Roboto,"Helvetica Neue",Arial,sans-serif;font-size:14px;color:#212121;background:#f3f1f7}
+header{background:#424242;color:#fff;padding:12px 20px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+header h1{margin:0;font-size:18px;font-weight:500;flex:1}
+header input{padding:7px 9px;border-radius:4px;border:0;width:260px;font:inherit}
+button{background:var(--pur);color:#fff;border:0;border-radius:4px;padding:7px 14px;font:600 13px Roboto,Arial,sans-serif;cursor:pointer}
+button.gh{background:#fff;color:var(--pur-d);border:1px solid #d1c4e9}
+.wrap{display:flex;gap:16px;padding:16px;align-items:flex-start}
+.card{background:#fff;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.15);padding:14px 16px}
+#liste{width:460px;flex:none;max-height:calc(100vh - 90px);overflow:auto}
+#detail{flex:1;min-width:0}
+table{border-collapse:collapse;width:100%}
+th,td{text-align:left;padding:5px 7px;border-bottom:1px solid #eee;vertical-align:top}
+th{font-size:12px;color:#616161;font-weight:600}
+tr.s{cursor:pointer}tr.s:hover{background:#f7f4fc}tr.s.on{background:#ede7f6}
+.mut{color:#757575}.small{font-size:12px}
+.tl{list-style:none;margin:0;padding:0}
+.tl li{display:grid;grid-template-columns:78px 120px 1fr;gap:10px;padding:6px 4px;border-bottom:1px solid #f0f0f0;align-items:start}
+.tl .t{font:12px monospace;color:#757575;padding-top:2px}
+.tl .k{font-size:12px;font-weight:600}
+.tl .k.klick{color:#455a64}.tl .k.ansicht{color:#00897b}.tl .k.auswahl,.tl .k.eingabe{color:#ef6c00}.tl .k.chat_ui{color:#7e57c2}
+.tl li.user{background:#f3eefc}.tl li.assistant{background:#fafafa}.tl li.fehler{background:#fdecea}
+.tl .c{white-space:pre-wrap;word-break:break-word}
+.tl .a{font-size:11.5px;color:#757575;margin-top:2px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.bar label{font-size:13px;display:flex;gap:4px;align-items:center}
+#msg{color:#ffcdd2}
+.kp{display:flex;gap:18px;flex-wrap:wrap;margin:4px 0 10px}.kp div{font-size:12px;color:#616161}.kp b{display:block;font-size:18px;color:#212121}
+</style></head><body>
+<header><h1>MSK-Plus Prototyp · Auswertung</h1>
+ <input id="tok" type="password" placeholder="ADMIN_TOKEN" autocomplete="off"><button id="laden">Daten laden</button><span id="msg"></span>
+</header>
+<div class="wrap">
+ <div class="card" id="liste"><div class="mut">Admin-Token eingeben und „Daten laden“ klicken.</div></div>
+ <div class="card" id="detail" style="display:none"></div>
+</div>
+<script>
+(function(){
+const FUNKTION_URL='https://amhmjulzrigdailtnxgs.supabase.co/functions/v1/msk-plus';
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const zt=d=>new Date(d).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+const dt=d=>new Date(d).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'});
+const dauer=ms=>{const m=Math.round(ms/60000);return m<1?'< 1 min':m+' min'};
+let DATA=null,AKT=null;
+$('tok').value=sessionStorage.getItem('msk_admin')||'';
+$('tok').addEventListener('keydown',e=>{if(e.key==='Enter')$('laden').click()});
+$('laden').addEventListener('click',async()=>{
+ $('msg').textContent='lädt …';
+ try{const r=await fetch(FUNKTION_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({aktion:'admin',token:$('tok').value})});
+  const j=await r.json();if(!r.ok)throw new Error(j.fehler||r.status);
+  sessionStorage.setItem('msk_admin',$('tok').value);DATA=j;$('msg').textContent='';liste();
+ }catch(e){$('msg').textContent='Fehler: '+e.message}
+});
+function proSitzung(id){return {ev:DATA.ereignisse.filter(e=>e.sitzung_id===id),ch:DATA.chat.filter(c=>c.sitzung_id===id)}}
+function liste(){
+ const S=DATA.sitzungen.slice().sort((a,b)=>b.start.localeCompare(a.start));
+ const nFragen=DATA.chat.filter(c=>c.rolle==='user').length;
+ let h=`<div class="kp"><div><b>${new Set(S.map(s=>s.code)).size}</b>Codes mit Sitzung</div><div><b>${S.length}</b>Sitzungen</div><div><b>${DATA.ereignisse.length}</b>Ereignisse</div><div><b>${nFragen}</b>Fragen an die KI</div></div>
+ <div class="bar"><button class="gh" id="xj">Alles als JSON</button><button class="gh" id="xe">Ereignisse CSV</button><button class="gh" id="xc">Chat CSV</button><label><input type="checkbox" id="ohneTest" checked> TEST-Codes ausblenden</label></div>
+ <table><tr><th>Code</th><th>Start</th><th>Dauer</th><th>Klicks</th><th>Fragen</th></tr>`;
+ const ohne=!document.getElementById('ohneTest')||document.getElementById('ohneTest').checked;
+ S.filter(s=>!(ohne&&/^TEST/.test(s.code))).forEach(s=>{const p=proSitzung(s.id),last=[...p.ev.map(e=>e.zeit),...p.ch.map(c=>c.zeit),s.start].sort().pop();
+  h+=`<tr class="s${AKT===s.id?' on':''}" data-id="${s.id}"><td><b>${esc(s.code)}</b></td><td>${dt(s.start)}</td><td>${dauer(new Date(last)-new Date(s.start))}</td><td>${p.ev.filter(e=>e.typ==='klick').length}</td><td>${p.ch.filter(c=>c.rolle==='user').length}</td></tr>`});
+ $('liste').innerHTML=h+'</table>';
+ $('liste').querySelectorAll('tr.s').forEach(tr=>tr.addEventListener('click',()=>{AKT=tr.dataset.id;liste();detail()}));
+ $('ohneTest').checked=ohne;$('ohneTest').addEventListener('change',liste);
+ $('xj').onclick=()=>dl('msk_auswertung.json',JSON.stringify(DATA,null,1),'application/json');
+ $('xe').onclick=()=>dl('msk_ereignisse.csv',csv(DATA.ereignisse,['code','sitzung_id','seq','zeit','typ','ziel','text','details','ansicht']),'text/csv');
+ $('xc').onclick=()=>dl('msk_chat.csv',csv(DATA.chat,['code','sitzung_id','zeit','rolle','inhalt','ansicht','modell','dauer_ms','meta']),'text/csv');
+}
+function ans(a){if(!a)return '';return [a.klasse&&'Klasse '+a.klasse,a.ansicht,a.stand,a.aufgabe&&'Aufgabe '+a.aufgabe,a.lernende&&'Kind '+a.lernende,a.foerdereinheit&&'FE '+a.foerdereinheit].filter(Boolean).join(' · ')}
+function detail(){
+ const s=DATA.sitzungen.find(x=>x.id===AKT);if(!s)return;const p=proSitzung(s.id);
+ const nurChat=$('nurChat')&&$('nurChat').checked,ohneAns=!$('mitAnsicht')||!$('mitAnsicht').checked;
+ const items=[...p.ev.filter(e=>!nurChat&&!(ohneAns&&e.typ==='ansicht')).map(e=>({z:e.zeit,k:e.typ,cls:'',c:[e.ziel&&`<b>${esc(e.ziel)}</b>`,esc(e.text||'')].filter(Boolean).join(' · ')+(e.details&&e.details.titel?` <span class="mut">(${esc(e.details.titel)})</span>`:''),a:ans(e.ansicht)})),
+  ...p.ch.map(c=>({z:c.zeit,k:c.rolle==='user'?'Frage':c.rolle==='assistant'?'KI-Antwort':'KI-Fehler',cls:c.rolle,c:esc(c.inhalt||''),a:c.rolle==='user'?ans(c.ansicht):(c.dauer_ms?'Antwortzeit '+(c.dauer_ms/1000).toFixed(1)+' s':'')}))].sort((a,b)=>a.z.localeCompare(b.z));
+ $('detail').style.display='';
+ $('detail').innerHTML=`<div class="bar"><b style="font-size:16px">${esc(s.code)}</b><span class="mut small">${dt(s.start)} · ${esc(s.bildschirm||'')} · Einwilligung ${esc(s.einwilligung_version||'')}</span><span style="flex:1"></span><label><input type="checkbox" id="nurChat"${nurChat?' checked':''}> nur Chat</label><label><input type="checkbox" id="mitAnsicht"${ohneAns?'':' checked'}> Ansichtswechsel zeigen</label></div>
+ <ul class="tl">${items.map(i=>`<li class="${i.cls}"><span class="t">${zt(i.z)}</span><span class="k ${esc(i.k)}">${esc(i.k)}</span><div><div class="c">${i.c}</div>${i.a?`<div class="a">${esc(i.a)}</div>`:''}</div></li>`).join('')}</ul>`;
+ $('nurChat').onchange=detail;$('mitAnsicht').onchange=detail;
+}
+function csv(rows,cols){const f=v=>{if(v==null)return '';if(typeof v==='object')v=JSON.stringify(v);v=String(v);return /[";\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};return '﻿'+cols.join(';')+'\n'+rows.map(r=>cols.map(c=>f(r[c])).join(';')).join('\n')}
+function dl(n,t,typ){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:typ+';charset=utf-8'}));a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
+})();
+</script>
+</body></html>
