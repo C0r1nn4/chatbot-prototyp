@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MSK-Plus Prototyp · Rückmeldung</title>
+<style>
+:root{--pur:#673ab7;--pur-d:#4527a0;--bg:#f3f1f7;--mut:#616161}
+*{box-sizing:border-box}
+body{margin:0;font-family:Roboto,"Helvetica Neue",Arial,sans-serif;font-size:15px;line-height:1.5;color:#212121;background:var(--bg)}
+header{background:#424242;color:#fff;padding:18px 24px}
+header h1{margin:0;font-size:20px;font-weight:500}
+header p{margin:2px 0 0;opacity:.8;font-size:13px}
+main{max-width:820px;margin:28px auto;padding:0 18px 60px}
+.card{background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.15);padding:22px 26px;margin-bottom:18px}
+h2{font-size:17px;margin:0 0 10px;color:var(--pur-d)}
+h3{font-size:14px;margin:20px 0 6px;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}
+.small{font-size:13px;color:var(--mut)}
+.lk{border-top:1px solid #eee;padding:12px 0}
+.lk p{margin:0 0 8px;font-weight:500}
+.sk{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.sk label{display:flex;flex-direction:column;align-items:center;gap:4px;padding:7px 4px;border:1px solid #d1c4e9;border-radius:6px;cursor:pointer;font-size:12px;text-align:center;line-height:1.2;background:#fff}
+.sk label:has(input:checked){background:#ede7f6;border-color:var(--pur)}
+.sk input{accent-color:var(--pur);margin:0}
+.kA{margin-top:6px;font-size:12.5px;color:var(--mut);display:flex;gap:6px;align-items:center;cursor:pointer;width:max-content}
+.kA input{accent-color:var(--pur)}
+textarea{width:100%;min-height:70px;font:14px/1.4 Roboto,Arial,sans-serif;padding:8px 10px;border:1px solid #bdbdbd;border-radius:6px;resize:vertical}
+.ot{margin:14px 0}.ot label{display:block;font-weight:500;margin-bottom:6px}
+.bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:18px}
+button,a.btn{background:var(--pur);color:#fff;border:0;border-radius:6px;padding:12px 22px;font:600 15px Roboto,Arial,sans-serif;cursor:pointer;text-decoration:none;display:inline-block}
+button:disabled{background:#b0a5c8;cursor:default}
+a.gh{background:#fff;color:var(--pur-d);border:1px solid #d1c4e9}
+.err{color:#b71c1c;min-height:22px;font-size:14px;margin-top:8px}
+@media (max-width:600px){.sk{grid-template-columns:1fr}.sk label{flex-direction:row}}
+</style></head><body>
+<header><h1>MSK-Plus Dashboard · Prototyp mit KI-Assistent</h1><p>Kurze Rückmeldung zum Abschluss</p></header>
+<main>
+<div class="card" id="form">
+ <h2>Wie war Ihr Eindruck?</h2>
+ <p class="small">Etwa 3 Minuten. Die Aussagen beantworten Sie bitte auf einer Skala von „trifft gar nicht zu“ bis „trifft voll zu“. Wenn Sie etwas nicht beurteilen können, wählen Sie „kann ich nicht beurteilen“.</p>
+ <div id="items"></div>
+ <h3>Freie Rückmeldung (freiwillig)</h3>
+ <div class="ot"><label for="o_hilfreich">Was war besonders hilfreich?</label><textarea id="o_hilfreich"></textarea></div>
+ <div class="ot"><label for="o_gefehlt">Was hat gefehlt oder gestört?</label><textarea id="o_gefehlt"></textarea></div>
+ <div class="ot"><label for="o_ki_frage">Gab es eine Frage, die der Assistent nicht gut beantworten konnte?</label><textarea id="o_ki_frage"></textarea></div>
+ <div class="bar"><button id="senden" type="button" disabled>Rückmeldung absenden</button><a class="btn gh" href="prototyp.html" id="zurueck">Doch noch weiter ausprobieren</a></div>
+ <div class="err" id="err" role="alert"></div>
+ <p class="small" id="hinweis">Bitte bewerten Sie alle sechs Aussagen (oder wählen Sie „kann ich nicht beurteilen“).</p>
+</div>
+<div class="card" id="danke" hidden>
+ <h2>Vielen Dank!</h2>
+ <p>Ihre Rückmeldung ist gespeichert. Sie können das Fenster jetzt schließen.</p>
+ <p class="small">Wenn Sie Ihre Einwilligung widerrufen möchten, wenden Sie sich mit Ihrem Teilnahmecode <b id="cd"></b> an Dr. Corinna Hankeln (corinna.hankeln@math.tu-dortmund.de).</p>
+ <p><a class="btn gh" href="prototyp.html">Zurück zum Prototyp</a></p>
+</div>
+</main>
+<script>
+(function(){
+const FUNKTION_URL='https://ftrzhdqoibsnuqtvyfvl.supabase.co/functions/v1/msk-plus';
+const $=id=>document.getElementById(id);
+const ITEMS=[
+ ['Dashboard','d_verstaendlich','Die Darstellung der Ergebnisse war für mich verständlich.'],
+ ['Dashboard','d_foerderplanung','Mit diesen Informationen könnte ich Förderung für meine Klasse planen.'],
+ ['KI-Assistent','k_hilfreich','Die Antworten des Assistenten waren hilfreich.'],
+ ['KI-Assistent','k_zutreffend','Die Antworten waren fachlich und didaktisch zutreffend, soweit ich das beurteilen kann.'],
+ ['KI-Assistent','k_ueberpruefen','Ich hätte die Antworten vor einer Entscheidung noch selbst überprüft.'],
+ ['KI-Assistent','k_nutzen','Ich würde einen solchen Assistenten in meinem Unterrichtsalltag nutzen.']];
+const SK=['trifft gar nicht zu','trifft eher nicht zu','teils / teils','trifft eher zu','trifft voll zu'];
+let SZ=null;try{SZ=JSON.parse(sessionStorage.getItem('msk_sitzung')||'null')}catch(e){}
+if(!SZ||!SZ.sitzung){$('form').innerHTML='<h2>Bitte über die Startseite beginnen</h2><p>Die Rückmeldung gehört zu einer Sitzung im Prototyp.</p><a class="btn" href="index.html">Zur Startseite</a>';return}
+let h='',grp='';
+ITEMS.forEach(([g,k,t])=>{if(g!==grp){h+='<h3>'+g+'</h3>';grp=g}
+ h+='<div class="lk" data-k="'+k+'"><p>'+t+'</p><div class="sk">'+SK.map((s,i)=>'<label><input type="radio" name="'+k+'" value="'+(i+1)+'">'+s+'</label>').join('')+'</div><label class="kA"><input type="radio" name="'+k+'" value="k.A.">kann ich nicht beurteilen</label></div>'});
+$('items').innerHTML=h;
+const wert=k=>(document.querySelector('input[name="'+k+'"]:checked')||{}).value;
+const upd=()=>{const ok=ITEMS.every(([,k])=>wert(k));$('senden').disabled=!ok;$('hinweis').hidden=ok};
+$('form').addEventListener('change',upd);upd();
+const post=b=>fetch(FUNKTION_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify(b)});
+const log=(typ,ziel)=>post({aktion:'log',code:SZ.code,sitzung:SZ.sitzung,ereignisse:[{zeit:new Date().toISOString(),typ,ziel,text:null}]}).catch(()=>{});
+log('rueckmeldung','geoeffnet');
+$('zurueck').addEventListener('click',()=>log('rueckmeldung','zurueck_zum_prototyp'));
+$('senden').addEventListener('click',async()=>{
+ const antworten={};ITEMS.forEach(([,k])=>{const v=wert(k);antworten[k]=v==='k.A.'?'k.A.':+v});
+ ['o_hilfreich','o_gefehlt','o_ki_frage'].forEach(k=>{const v=$(k).value.trim();if(v)antworten[k]=v.slice(0,4000)});
+ $('senden').disabled=true;$('senden').textContent='Wird gesendet …';$('err').textContent='';
+ try{const r=await post({aktion:'rueckmeldung',code:SZ.code,sitzung:SZ.sitzung,antworten});
+  if(!r.ok){const j=await r.json().catch(()=>({}));throw new Error(j.fehler||'Fehler '+r.status)}
+  sessionStorage.setItem('msk_rm','1');$('cd').textContent=SZ.code;$('form').hidden=true;$('danke').hidden=false;window.scrollTo(0,0);
+ }catch(e){$('err').textContent=e instanceof TypeError?'Keine Verbindung zum Server. Bitte erneut versuchen.':e.message;$('senden').textContent='Rückmeldung absenden';upd()}
+});
+})();
+</script>
+</body></html>
