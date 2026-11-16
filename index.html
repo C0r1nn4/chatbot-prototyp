@@ -26,6 +26,13 @@ button{background:var(--pur);color:#fff;border:0;border-radius:6px;padding:12px 
 button:disabled{background:#b0a5c8;cursor:default}
 .err{color:#b71c1c;min-height:22px;font-size:14px;margin-top:6px}
 .small{font-size:13px;color:var(--mut)}
+fieldset{border:0;margin:0 0 18px;padding:0}
+legend{font-weight:600;margin-bottom:6px;padding:0}
+.opt{display:flex;flex-wrap:wrap;gap:8px}
+.opt label{display:flex;gap:6px;align-items:center;border:1px solid #d1c4e9;border-radius:18px;padding:6px 12px;cursor:pointer;font-size:14px;background:#fff}
+.opt label:has(input:checked){background:#ede7f6;border-color:var(--pur)}
+.opt input{accent-color:var(--pur);margin:0}
+.opt-l{font-weight:400;color:var(--mut);font-size:13px}
 </style></head><body>
 <header><h1>MSK-Plus Dashboard · Prototyp mit KI-Assistent</h1><p>Mathe sicher können · Lehrkraft-Sicht zum Ausprobieren</p></header>
 <main>
@@ -48,6 +55,7 @@ button:disabled{background:#b0a5c8;cursor:default}
   <ul>
    <li>Ihr <b>Teilnahmecode</b> (ein Pseudonym; wir speichern keine Namen oder E-Mail-Adressen),</li>
    <li>Zeitpunkte und Abfolge Ihrer <b>Klicks und Auswahlen</b> im Prototyp sowie die jeweils geöffnete Ansicht,</li>
+   <li>Ihre Angaben im Kurzfragebogen nach dem Start (Lehrerfahrung, Nutzung von KI-Werkzeugen, Schulform, Vorerfahrung mit „Mathe sicher können“),</li>
    <li>Texte, die Sie in Eingabefelder des Prototyps schreiben,</li>
    <li>Ihre <b>Fragen an den KI-Assistenten und dessen Antworten</b>,</li>
    <li>technische Angaben: Browser-Kennung und Fenstergröße.</li>
@@ -76,12 +84,47 @@ button:disabled{background:#b0a5c8;cursor:default}
  <div class="err" id="err" role="alert"></div>
  <p class="small">Den Teilnahmecode haben Sie von uns erhalten. Der Prototyp funktioniert am besten auf einem Laptop oder großen Bildschirm.</p>
 </div>
+<div class="card" id="fb" hidden>
+ <h2>Noch ein paar kurze Fragen zu Ihnen</h2>
+ <p class="small">Die Angaben helfen uns, die Nutzung des Prototyps besser einzuordnen. Sie werden nur mit Ihrem Teilnahmecode gespeichert.</p>
+ <fieldset><legend>Wie lange unterrichten Sie bereits? <span class="opt-l">(einschließlich Referendariat)</span></legend><div class="opt" data-q="lehrerfahrung">
+  <label><input type="radio" name="lehrerfahrung" value="ausbildung">Studium oder Referendariat</label>
+  <label><input type="radio" name="lehrerfahrung" value="0-2">bis 2 Jahre</label>
+  <label><input type="radio" name="lehrerfahrung" value="3-10">3–10 Jahre</label>
+  <label><input type="radio" name="lehrerfahrung" value="11-20">11–20 Jahre</label>
+  <label><input type="radio" name="lehrerfahrung" value="20+">mehr als 20 Jahre</label>
+  <label><input type="radio" name="lehrerfahrung" value="k.A.">keine Angabe</label></div></fieldset>
+ <fieldset><legend>Wie häufig nutzen Sie KI-Werkzeuge wie ChatGPT? <span class="opt-l">(privat oder beruflich)</span></legend><div class="opt" data-q="ki_nutzung">
+  <label><input type="radio" name="ki_nutzung" value="nie">nie</label>
+  <label><input type="radio" name="ki_nutzung" value="selten">seltener als einmal im Monat</label>
+  <label><input type="radio" name="ki_nutzung" value="monatlich">mehrmals im Monat</label>
+  <label><input type="radio" name="ki_nutzung" value="woechentlich">mehrmals pro Woche</label>
+  <label><input type="radio" name="ki_nutzung" value="taeglich">(fast) täglich</label>
+  <label><input type="radio" name="ki_nutzung" value="k.A.">keine Angabe</label></div></fieldset>
+ <fieldset><legend>An welcher Schulform unterrichten Sie? <span class="opt-l">(optional)</span></legend><div class="opt" data-q="schulform">
+  <label><input type="radio" name="schulform" value="gymnasium">Gymnasium</label>
+  <label><input type="radio" name="schulform" value="gesamtschule">Gesamtschule</label>
+  <label><input type="radio" name="schulform" value="realschule">Realschule</label>
+  <label><input type="radio" name="schulform" value="haupt-sekundar">Haupt- oder Sekundarschule</label>
+  <label><input type="radio" name="schulform" value="foerderschule">Förderschule</label>
+  <label><input type="radio" name="schulform" value="andere">andere</label>
+  <label><input type="radio" name="schulform" value="k.A.">keine Angabe</label></div></fieldset>
+ <fieldset><legend>Wie gut kennen Sie „Mathe sicher können“? <span class="opt-l">(optional)</span></legend><div class="opt" data-q="msk_erfahrung">
+  <label><input type="radio" name="msk_erfahrung" value="unbekannt">kenne ich noch nicht</label>
+  <label><input type="radio" name="msk_erfahrung" value="gehoert">habe davon gehört</label>
+  <label><input type="radio" name="msk_erfahrung" value="ausprobiert">habe es ausprobiert</label>
+  <label><input type="radio" name="msk_erfahrung" value="regelmaessig">nutze es regelmäßig</label>
+  <label><input type="radio" name="msk_erfahrung" value="k.A.">keine Angabe</label></div></fieldset>
+ <button id="fbgo" type="button" disabled>Weiter zum Prototyp</button>
+ <div class="err" id="fberr" role="alert"></div>
+ <p class="small">Bitte beantworten Sie mindestens die ersten beiden Fragen (gern auch mit „keine Angabe“).</p>
+</div>
 </main>
 <script>
 (function(){
 const FUNKTION_URL='https://ftrzhdqoibsnuqtvyfvl.supabase.co/functions/v1/msk-plus';
 const ZIEL='prototyp.html';
-const EINWILLIGUNG_VERSION='2026-11-v1';
+const EINWILLIGUNG_VERSION='2026-11-v2';
 const $=id=>document.getElementById(id);
 $('ver').textContent=EINWILLIGUNG_VERSION;
 const p=new URLSearchParams(location.search);if(p.get('code'))$('code').value=p.get('code');
@@ -96,9 +139,22 @@ $('go').addEventListener('click',async()=>{
   if(!r.ok||!j.sitzung)throw new Error(j.fehler||'Start nicht möglich ('+r.status+').');
   ['msk_chat','msk_seq','msk_kc'].forEach(k=>sessionStorage.removeItem(k));
   sessionStorage.setItem('msk_sitzung',JSON.stringify({code:j.code,sitzung:j.sitzung,start:new Date().toISOString()}));
-  location.href=ZIEL;
+  zeigeFragebogen(j);
  }catch(e){$('err').textContent=e instanceof TypeError?'Keine Verbindung zum Server. Bitte später erneut versuchen.':e.message;$('go').textContent='Prototyp starten';upd()}
 });
+function zeigeFragebogen(sz){
+ document.querySelectorAll('main > .card').forEach(c=>c.hidden=c.id!=='fb');window.scrollTo(0,0);
+ const P=['lehrerfahrung','ki_nutzung'],wert=n=>(document.querySelector('input[name="'+n+'"]:checked')||{}).value;
+ const upd2=()=>{$('fbgo').disabled=!P.every(wert)};$('fb').addEventListener('change',upd2);
+ $('fbgo').addEventListener('click',async()=>{
+  const antworten={};document.querySelectorAll('#fb [data-q]').forEach(d=>{const v=wert(d.dataset.q);if(v)antworten[d.dataset.q]=v});
+  $('fbgo').disabled=true;$('fbgo').textContent='Wird gespeichert …';$('fberr').textContent='';
+  try{const r=await fetch(FUNKTION_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify({aktion:'hintergrund',code:sz.code,sitzung:sz.sitzung,antworten})});
+   if(!r.ok){const j=await r.json().catch(()=>({}));throw new Error(j.fehler||'Fehler '+r.status)}
+   location.href=ZIEL;
+  }catch(e){$('fberr').textContent=e instanceof TypeError?'Keine Verbindung zum Server. Bitte erneut versuchen.':e.message;$('fbgo').textContent='Weiter zum Prototyp';upd2()}
+ });
+}
 })();
 </script>
 </body></html>
